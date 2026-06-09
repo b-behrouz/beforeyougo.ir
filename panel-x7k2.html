@@ -965,12 +965,22 @@ document.addEventListener('DOMContentLoaded', initHours);
 let currentSha = '';
 
 async function githubGetFile() {
+  // اگه token نبود از raw URL بخون
+  if (!GITHUB_TOKEN) {
+    const res = await fetch(RAW_URL + '?t=' + Date.now());
+    return await res.json();
+  }
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
     headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
   });
+  if (!res.ok) {
+    // fallback به raw URL
+    const res2 = await fetch(RAW_URL + '?t=' + Date.now());
+    return await res2.json();
+  }
   const data = await res.json();
+  if (!data.content) throw new Error('محتوا دریافت نشد - ' + (data.message || ''));
   currentSha = data.sha;
-  // decode درست برای UTF-8 فارسی
   const b64 = data.content.replace(/\n/g,'');
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
@@ -1005,7 +1015,7 @@ async function loadShops() {
     renderTable(shops);
     renderStats(shops);
   } catch(e) {
-    document.getElementById('table-sub').textContent = 'خطا در بارگذاری';
+    document.getElementById('table-sub').textContent = 'خطا در بارگذاری: ' + e.message;
   }
 }
 
@@ -1036,7 +1046,7 @@ function renderTable(shopsData) {
       <td><div class="table-address">${address}</div></td>
       <td>
         <div class="table-actions">
-          <button class="btn btn-outline btn-sm" title="ویرایش" onclick="openEditModal('${id}')">
+          <button class="btn btn-outline btn-sm" title="ویرایش" onclick='openEditModal(${JSON.stringify(s)})'>
             <span class="material-icons-round">edit</span>
           </button>
           <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${id}','${name.replace(/'/g,"\\'")}')">
@@ -1177,10 +1187,15 @@ function openDeleteModal(id, name) {
 // ─── EDIT MODAL ───
 let editShopId = null;
 
-function openEditModal(id) {
-  const shop = shops.find(s => String(s.id) === String(id));
+function openEditModal(shopOrId) {
+  let shop;
+  if (typeof shopOrId === 'object' && shopOrId !== null) {
+    shop = shopOrId;
+  } else {
+    shop = shops.find(s => String(s.id) === String(shopOrId));
+  }
   if (!shop) return;
-  editShopId = id;
+  editShopId = shop.id;
 
   document.getElementById('edit-name').value = shop.name || '';
   document.getElementById('edit-phone').value = shop.phone || '';
