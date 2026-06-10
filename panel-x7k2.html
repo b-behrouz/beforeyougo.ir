@@ -533,7 +533,7 @@ body {
         <div class="field">
           <label>آدرس کامل <span style="color:var(--error)">*</span></label>
           <div style="display:flex;gap:8px;align-items:center">
-            <input type="text" id="f-address" maxlength="200" placeholder="تهران، خBeforeYouGoان...، پلاک ..." style="flex:1" oninput="clearCoords()">
+            <input type="text" id="f-address" maxlength="200" placeholder="تهران، خیابان...، پلاک ..." style="flex:1" oninput="clearCoords()">
             <button type="button" onclick="openMapPicker()" id="find-loc-btn"
               style="height:48px;padding:0 14px;border-radius:10px;background:#FFF0C8;color:#7A4800;border:1px solid #D4A843;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">
               📍 انتخاب از نقشه
@@ -715,7 +715,7 @@ body {
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────
-const GITHUB_REPO  = 'b-behrouz/yabmapnew';
+const GITHUB_REPO  = 'b-behrouz/beforeyougo';
 const GITHUB_FILE  = 'shops.json';
 const RAW_URL      = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_FILE}`;
 let GITHUB_TOKEN   = localStorage.getItem('gh_token') || '';
