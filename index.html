@@ -2522,7 +2522,7 @@ function renderHoursBlock(hoursStr, isMobile) {
 
   // collapse state
   const uid = 'hrs_' + Math.random().toString(36).slice(2,7);
-  return `<div style="margin-top:${isMobile?'8px':'10px'};border:1px solid #e8e0d0;border-radius:10px;overflow:hidden">
+  return `<div style="margin-top:${isMobile?'8px':'10px'};border-radius:10px;overflow:hidden">
     <div onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none';this.querySelector('.hrs-chevron').style.transform=document.getElementById('${uid}').style.display==='none'?'rotate(0deg)':'rotate(180deg)'"
       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer">
       <div style="display:flex;align-items:center;gap:8px">
