@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BeforeYouGo | نقشه هوشمند گالری‌های طلا و جواهر</title>
 <!-- PWA -->
-<link rel="manifest" href="/yab/manifest.json">
+<link rel="manifest" href="/beforeyougo/manifest.json">
 <meta name="theme-color" content="#C49A2A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2573,7 +2573,7 @@ function applyShops(shops) {
   renderMobCards();
 }
 
-const SHOPS_JSON_URL = 'https://raw.githubusercontent.com/b-behrouz/yabmapnew/main/shops.json';
+const SHOPS_JSON_URL = 'https://raw.githubusercontent.com/b-behrouz/beforeyougo/main/shops.json';
 
 function clearShopsCache() {
   try { localStorage.removeItem(SHOPS_CACHE_KEY); } catch(e) {}
@@ -3079,7 +3079,7 @@ const _origFetchShops = window.fetchShops;
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/yab/sw.js')
+    navigator.serviceWorker.register('/beforeyougo/sw.js')
       .then(r =>
 )
       .catch(e =>
