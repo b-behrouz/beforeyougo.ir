@@ -2495,13 +2495,26 @@ function renderHoursBlock(hoursStr, isMobile) {
     parsed[d.slice(0, idx)] = d.slice(idx + 1);
   });
 
+  // تبدیل مقدار به متن نمایشی
+  function fmtVal(val) {
+    if (!val || val === 'تعطیل') return { text: 'تعطیل', closed: true };
+    if (val.includes(',')) {
+      const parts = val.split(',');
+      const s1 = parts[0].replace('-', ' تا ');
+      const s2 = parts[1].replace('-', ' تا ');
+      return { text: `${s1} و ${s2}`, closed: false };
+    }
+    return { text: val.replace('-', ' تا '), closed: false };
+  }
+
   // وضعیت امروز
   const todayVal = parsed[todayName] || '';
   const todayClosed = todayVal === 'تعطیل' || !todayVal;
   const isOpen = !todayClosed;
   const statusColor = isOpen ? '#1A6B30' : '#BA1A1A';
   const statusText = isOpen ? 'باز است' : 'بسته است';
-  const todayTime = isOpen ? todayVal.replace('-', ' تا ') : '';
+  const todayFmt = fmtVal(todayVal);
+  const todayTime = isOpen ? todayFmt.text : '';
 
   // ساخت ردیف‌ها
   const DAYS_ORDER = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
@@ -2511,12 +2524,11 @@ function renderHoursBlock(hoursStr, isMobile) {
 
   const rows = ordered.map((name, i) => {
     const val = parsed[name] || 'تعطیل';
-    const closed = val === 'تعطیل';
-    const timeStr = closed ? 'تعطیل' : val.replace('-', ' تا ');
+    const fmt = fmtVal(val);
     const isToday = i === 0;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:${isToday?'4px 0 6px':'3px 0'};${isToday?'border-bottom:1px solid #e8e0d0;margin-bottom:4px':''}">
-      <span style="color:${closed?'#999':'#504539'};font-weight:${isToday?'700':'400'};font-size:${isToday?'14px':'12px'}">${name}${isToday?' (امروز)':''}</span>
-      <span style="color:${closed?'#BA1A1A':'#1A6B30'};font-weight:${isToday?'700':'600'};font-size:${isToday?'14px':'12px'}">${timeStr}</span>
+      <span style="color:${fmt.closed?'#999':'#504539'};font-weight:${isToday?'700':'400'};font-size:${isToday?'14px':'12px'}">${name}${isToday?' (امروز)':''}</span>
+      <span style="color:${fmt.closed?'#BA1A1A':'#1A6B30'};font-weight:${isToday?'700':'600'};font-size:${isToday?'14px':'12px'}">${fmt.text}</span>
     </div>`;
   }).join('');
 
