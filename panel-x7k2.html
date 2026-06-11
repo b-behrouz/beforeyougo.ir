@@ -260,22 +260,27 @@ body {
 .type-emoji { font-size: 18px; }
 
 .hours-row {
-  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  display: flex; align-items: flex-start; gap: 6px; flex-wrap: nowrap;
   background: var(--surface-var); border-radius: 8px;
   padding: 8px 10px; font-size: 13px; direction: rtl;
   box-sizing: border-box; width: 100%;
 }
 .hours-row.closed { opacity: 0.5; }
-.hours-row .day-name { width: 60px; min-width: 60px; font-weight: 600; color: var(--on-surface); flex-shrink: 0; }
-.hours-row input[type=time] {
+.hours-row .day-name { width: 60px; min-width: 60px; font-weight: 600; color: var(--on-surface); flex-shrink: 0; padding-top: 5px; }
+.hours-row input[type=time], .hours-row input.t-inp {
   border: 1.5px solid var(--outline-var); border-radius: 6px;
-  padding: 4px 4px; font-size: 12px; font-family: var(--font);
-  background: var(--surface); color: var(--on-surface); width: 78px; min-width: 78px;
+  padding: 4px 6px; font-size: 13px; font-family: var(--font);
+  background: var(--surface); color: var(--on-surface); width: 72px; min-width: 72px;
   direction: ltr; text-align: center; flex-shrink: 0;
 }
-.hours-row input[type=time]:disabled { opacity: 0.4; }
-.hours-row .sep { color: var(--on-surface-var); font-size: 12px; flex-shrink: 0; }
-.hours-closed-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--error); cursor: pointer; margin-right: auto; white-space: nowrap; flex-shrink: 0; }
+.hours-row input[type=time]:disabled, .hours-row input.t-inp:disabled { opacity: 0.4; }
+.hours-row .sep { color: var(--on-surface-var); font-size: 12px; flex-shrink: 0; padding-top: 5px; }
+.hours-closed-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--error); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.hours-shifts { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.hours-shift-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.hours-shift-label { font-size: 10px; color: var(--on-surface-var); min-width: 32px; text-align: right; flex-shrink: 0; }
+.hours-shift-toggle { font-size: 11px; color: var(--primary); cursor: pointer; text-decoration: underline; white-space: nowrap; flex-shrink: 0; padding: 2px 4px; }
+.hours-shift-toggle:hover { opacity: 0.7; }
 
 .form-hint {
   font-size: 11px; color: var(--on-surface-var); margin-top: 5px;
@@ -718,7 +723,7 @@ body {
 const GITHUB_REPO  = 'b-behrouz/beforeyougo.ir';
 const GITHUB_FILE  = 'shops.json';
 const RAW_URL      = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_FILE}`;
-let GITHUB_TOKEN   = localStorage.getItem('gh_token') || '';
+let GITHUB_TOKEN   = (() => { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } })();
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'zarrin1234';
 
@@ -745,7 +750,7 @@ function doLogin() {
 
   if (user === ADMIN_USER && pass === ADMIN_PASS) {
     // چک کن token داریم
-    const savedToken = localStorage.getItem('gh_token') || '';
+    const savedToken = (() => { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } })();
     const inpToken = document.getElementById('inp-token')?.value.trim() || '';
     
     if (!savedToken && !inpToken) {
@@ -758,7 +763,7 @@ function doLogin() {
 
     if (inpToken) {
       GITHUB_TOKEN = inpToken;
-      localStorage.setItem('gh_token', inpToken);
+      try { localStorage.setItem('gh_token', inpToken); } catch(e) {}
     } else {
       GITHUB_TOKEN = savedToken;
     }
@@ -796,50 +801,135 @@ const DAYS = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چها
 const DEFAULT_OPEN  = '09:00';
 const DEFAULT_CLOSE = '20:00';
 
+function buildShiftRow(prefix, shift, o1, c1, o2, c2, isClosed) {
+  // shift: 'صبح' or 'عصر', prefix: e.g. 'h' or 'edit-h'
+  // only called internally
+}
+
+/* ── TIME MASK: auto-insert colon, only digits, max HH:MM ── */
+function maskTime(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
+  el.value = v;
+}
+
+function getTimeVal(el, fallback) {
+  if (!el) return fallback;
+  const v = el.value.trim();
+  return /^\d{2}:\d{2}$/.test(v) ? v : fallback;
+}
+
+
+   "تعطیل"  |  "09:00-14:00"  |  "09:00-14:00,17:00-21:00"
+*/
+function parseDayVal(val) {
+  if (!val || val === 'تعطیل') return { closed: true, s1: ['09:00','14:00'], s2: null };
+  const shifts = val.split(',');
+  const s1 = shifts[0] ? shifts[0].split('-') : ['09:00','14:00'];
+  const s2 = shifts[1] ? shifts[1].split('-') : null;
+  return { closed: false, s1: [s1[0]||'09:00', s1[1]||'14:00'], s2: s2 ? [s2[0]||'17:00', s2[1]||'21:00'] : null };
+}
+
+function buildDayRow(pfx, i, day, dayData) {
+  const { closed, s1, s2 } = dayData;
+  const has2 = !!s2;
+  const dis = closed ? 'disabled' : '';
+  return `
+    <div class="hours-row ${closed?'closed':''}" id="${pfx}hrow-${i}">
+      <span class="day-name">${day}</span>
+      <div class="hours-shifts" id="${pfx}hshifts-${i}">
+        <div class="hours-shift-row">
+          <span class="hours-shift-label" id="${pfx}hlbl1-${i}" style="${has2?'':'display:none'}">صبح:</span>
+          <input class="t-inp" id="${pfx}h-open-${i}" value="${s1[0]}" placeholder="09:00" maxlength="5" ${dis} oninput="maskTime(this)">
+          <span class="sep">–</span>
+          <input class="t-inp" id="${pfx}h-close-${i}" value="${s1[1]}" placeholder="20:00" maxlength="5" ${dis} oninput="maskTime(this)">
+          <label class="hours-closed-label" style="margin-right:4px">
+            <input type="checkbox" id="${pfx}h-closed-${i}" onchange="toggleClosedDay('${pfx}',${i})" ${closed?'checked':''}> تعطیل
+          </label>
+          <span class="hours-shift-toggle" id="${pfx}h-add2-${i}" onclick="toggleShift2('${pfx}',${i})" style="${has2||closed?'display:none':''}" title="افزودن نوبت عصر">＋ عصر</span>
+        </div>
+        <div class="hours-shift-row" id="${pfx}hshift2-${i}" style="${has2&&!closed?'display:flex':'display:none'}">
+          <span class="hours-shift-label">عصر:</span>
+          <input class="t-inp" id="${pfx}h-open2-${i}" value="${has2?s2[0]:'17:00'}" placeholder="17:00" maxlength="5" ${dis} oninput="maskTime(this)">
+          <span class="sep">–</span>
+          <input class="t-inp" id="${pfx}h-close2-${i}" value="${has2?s2[1]:'21:00'}" placeholder="21:00" maxlength="5" ${dis} oninput="maskTime(this)">
+          <span class="hours-shift-toggle" style="color:var(--error)" onclick="removeShift2('${pfx}',${i})" title="حذف نوبت عصر">✕</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleClosedDay(pfx, i) {
+  const closed = document.getElementById(`${pfx}h-closed-${i}`).checked;
+  const row = document.getElementById(`${pfx}hrow-${i}`);
+  row.classList.toggle('closed', closed);
+  [`${pfx}h-open-${i}`,`${pfx}h-close-${i}`,`${pfx}h-open2-${i}`,`${pfx}h-close2-${i}`].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = closed;
+  });
+  const add2 = document.getElementById(`${pfx}h-add2-${i}`);
+  const shift2 = document.getElementById(`${pfx}hshift2-${i}`);
+  const lbl1 = document.getElementById(`${pfx}hlbl1-${i}`);
+  if (closed) {
+    if (add2) add2.style.display = 'none';
+    if (shift2) shift2.style.display = 'none';
+    if (lbl1) lbl1.style.display = 'none';
+  } else {
+    const has2 = shift2 && shift2.style.display === 'flex';
+    if (add2) add2.style.display = has2 ? 'none' : 'inline';
+    if (lbl1) lbl1.style.display = has2 ? 'inline' : 'none';
+  }
+}
+
+function toggleShift2(pfx, i) {
+  const shift2 = document.getElementById(`${pfx}hshift2-${i}`);
+  const add2 = document.getElementById(`${pfx}h-add2-${i}`);
+  const lbl1 = document.getElementById(`${pfx}hlbl1-${i}`);
+  if (shift2) shift2.style.display = 'flex';
+  if (add2) add2.style.display = 'none';
+  if (lbl1) lbl1.style.display = 'inline';
+}
+
+function removeShift2(pfx, i) {
+  const shift2 = document.getElementById(`${pfx}hshift2-${i}`);
+  const add2 = document.getElementById(`${pfx}h-add2-${i}`);
+  const lbl1 = document.getElementById(`${pfx}hlbl1-${i}`);
+  if (shift2) shift2.style.display = 'none';
+  if (add2) add2.style.display = '';
+  if (lbl1) lbl1.style.display = 'none';
+}
+
+function getDayValue(pfx, day, i) {
+  const closedEl = document.getElementById(`${pfx}h-closed-${i}`);
+  if (closedEl && closedEl.checked) return `${day}:تعطیل`;
+  const o1 = getTimeVal(document.getElementById(`${pfx}h-open-${i}`),  '09:00');
+  const c1 = getTimeVal(document.getElementById(`${pfx}h-close-${i}`), '14:00');
+  const shift2 = document.getElementById(`${pfx}hshift2-${i}`);
+  const has2 = shift2 && shift2.style.display === 'flex';
+  if (has2) {
+    const o2 = getTimeVal(document.getElementById(`${pfx}h-open2-${i}`),  '17:00');
+    const c2 = getTimeVal(document.getElementById(`${pfx}h-close2-${i}`), '21:00');
+    return `${day}:${o1}-${c1},${o2}-${c2}`;
+  }
+  return `${day}:${o1}-${c1}`;
+}
+
 function initHours() {
   const container = document.getElementById('hours-rows');
   if (!container) return;
-  container.innerHTML = DAYS.map((day, i) => `
-    <div class="hours-row" id="hrow-${i}">
-      <span class="day-name">${day}</span>
-      <input type="time" id="h-open-${i}" value="${DEFAULT_OPEN}">
-      <span class="sep">–</span>
-      <input type="time" id="h-close-${i}" value="${DEFAULT_CLOSE}">
-      <label class="hours-closed-label">
-        <input type="checkbox" id="h-closed-${i}" onchange="toggleClosed(${i})"> تعطیل
-      </label>
-    </div>`).join('');
+  container.innerHTML = DAYS.map((day, i) =>
+    buildDayRow('', i, day, { closed: false, s1: [DEFAULT_OPEN, DEFAULT_CLOSE], s2: null })
+  ).join('');
 }
 
-function toggleClosed(i) {
-  const closed = document.getElementById(`h-closed-${i}`).checked;
-  document.getElementById(`hrow-${i}`).classList.toggle('closed', closed);
-  document.getElementById(`h-open-${i}`).disabled  = closed;
-  document.getElementById(`h-close-${i}`).disabled = closed;
-}
+function toggleClosed(i) { toggleClosedDay('', i); }
 
 function getHoursValue() {
-  return DAYS.map((d, i) => {
-    const el = document.getElementById(`h-closed-${i}`);
-    if (!el) return `${d}:${DEFAULT_OPEN}-${DEFAULT_CLOSE}`;
-    if (el.checked) return `${d}:تعطیل`;
-    const open  = document.getElementById(`h-open-${i}`).value  || DEFAULT_OPEN;
-    const close = document.getElementById(`h-close-${i}`).value || DEFAULT_CLOSE;
-    return `${d}:${open}-${close}`;
-  }).join('|');
+  return DAYS.map((d, i) => getDayValue('', d, i)).join('|');
 }
 
 function resetHours() {
-  DAYS.forEach((_, i) => {
-    const el = document.getElementById(`h-open-${i}`);
-    if (!el) return;
-    document.getElementById(`h-open-${i}`).value    = DEFAULT_OPEN;
-    document.getElementById(`h-close-${i}`).value   = DEFAULT_CLOSE;
-    document.getElementById(`h-closed-${i}`).checked = false;
-    document.getElementById(`hrow-${i}`).classList.remove('closed');
-    document.getElementById(`h-open-${i}`).disabled  = false;
-    document.getElementById(`h-close-${i}`).disabled = false;
-  });
+  initHours();
 }
 
 // ── TYPE SELECT ───────────────────────────────────────────────────────
@@ -1275,38 +1365,15 @@ function renderEditHours(hoursStr) {
   }
   container.innerHTML = DAYS.map((day, i) => {
     const val = parsed[i] || '';
-    const isClosed = val === 'تعطیل';
-    const parts = val.split('-');
-    const start = (!isClosed && parts.length === 2) ? parts[0] : '09:00';
-    const end   = (!isClosed && parts.length === 2) ? parts[1] : '20:00';
-    return `
-    <div class="hours-row ${isClosed?'closed':''}" id="edit-hrow-${i}">
-      <span class="day-name">${day}</span>
-      <input type="time" id="edit-h-open-${i}" value="${start}" ${isClosed?'disabled':''}>
-      <span class="sep">–</span>
-      <input type="time" id="edit-h-close-${i}" value="${end}" ${isClosed?'disabled':''}>
-      <label class="hours-closed-label">
-        <input type="checkbox" id="edit-h-closed-${i}" onchange="toggleEditClosed(${i})" ${isClosed?'checked':''}> تعطیل
-      </label>
-    </div>`;
+    const dayData = parseDayVal(val);
+    return buildDayRow('edit-', i, day, dayData);
   }).join('');
 }
 
-function toggleEditClosed(i) {
-  const closed = document.getElementById(`edit-h-closed-${i}`).checked;
-  document.getElementById(`edit-h-open-${i}`).disabled = closed;
-  document.getElementById(`edit-h-close-${i}`).disabled = closed;
-  document.getElementById(`edit-hrow-${i}`).classList.toggle('closed', closed);
-}
+function toggleEditClosed(i) { toggleClosedDay('edit-', i); }
 
 function getEditHoursValue() {
-  return DAYS.map((day, i) => {
-    const el = document.getElementById(`edit-h-closed-${i}`);
-    if (el && el.checked) return `${day}:تعطیل`;
-    const open  = document.getElementById(`edit-h-open-${i}`)?.value  || '09:00';
-    const close = document.getElementById(`edit-h-close-${i}`)?.value || '20:00';
-    return `${day}:${open}-${close}`;
-  }).join('|');
+  return DAYS.map((day, i) => getDayValue('edit-', day, i)).join('|');
 }
 
 function closeEditModal() {
