@@ -819,7 +819,7 @@ function getTimeVal(el, fallback) {
   return /^\d{2}:\d{2}$/.test(v) ? v : fallback;
 }
 
-
+/* ── helper: parse day value which can be:
    "تعطیل"  |  "09:00-14:00"  |  "09:00-14:00,17:00-21:00"
 */
 function parseDayVal(val) {
